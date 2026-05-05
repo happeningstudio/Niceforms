@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NiceForms — Form Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500&family=Hedvig+Letters+Serif:opsz@12&display=swap" rel="stylesheet">
+<style>
+
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F5F5F3; color: #1A1A1A; height: 100vh; overflow: hidden; }
+
+/* ── APP SHELL ── */
+.app { display: grid; grid-template-columns: 260px 1fr; height: 100vh; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: #FAFAF8;
+  border-right: 0.5px solid #D8D4CE;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sidebar-top {
+  padding: 18px 16px 12px;
+  border-bottom: 0.5px solid #D8D4CE;
+  flex-shrink: 0;
+}
+.brand { font-family: 'Hedvig Letters Serif', serif; font-size: 15px; color: #1A1A1A; margin-bottom: 2px; }
+.brand-sub { font-family: 'Fira Code', monospace; font-weight: 300; font-size: 10px; color: #888; }
+.sidebar-scroll { flex: 1; overflow-y: auto; padding: 14px 16px; }
+
+.sl { font-size: 10px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: .1em; margin: 14px 0 7px; }
+.sl:first-child { margin-top: 0; }
+.fg { margin-bottom: 8px; }
+.fg label { font-size: 11px; color: #555; margin-bottom: 3px; display: block; }
+.fg input, .fg textarea, .fg select {
+  width: 100%; font-size: 11px; padding: 5px 8px;
+  border: 0.5px solid #D0CCC8; border-radius: 5px;
+  background: #fff; color: #1A1A1A;
+  font-family: -apple-system, sans-serif;
+  outline: none;
+}
+.fg input:focus, .fg textarea:focus { border-color: #3D5A4C; }
+.fg textarea { resize: vertical; min-height: 44px; line-height: 1.5; }
+.divider { border: none; border-top: 0.5px solid #E8E4DE; margin: 12px 0; }
+
+/* color swatches */
+.swatch-row { display: flex; gap: 6px; margin-top: 5px; }
+.swatch {
+  width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; transition: border-color .15s;
+}
+.swatch.active { border-color: #3D5A4C; }
+.swatch:hover { opacity: .85; }
+
+/* size buttons */
+.size-row { display: flex; gap: 6px; margin-top: 5px; }
+.size-btn {
+  flex: 1; padding: 5px 0; border: 0.5px solid #D0CCC8; border-radius: 5px;
+  font-size: 11px; background: #fff; color: #666; cursor: pointer; text-align: center;
+  font-family: -apple-system, sans-serif; transition: all .15s;
+}
+.size-btn.active { background: #3D5A4C; color: #F5F0E8; border-color: #3D5A4C; }
+.size-btn:hover:not(.active) { border-color: #3D5A4C; color: #3D5A4C; }
+
+.sidebar-bottom {
+  padding: 12px 16px;
+  border-top: 0.5px solid #D8D4CE;
+  flex-shrink: 0;
+}
+.btn-print {
+  width: 100%; padding: 9px; background: #3D5A4C; color: #F5F0E8;
+  border: none; border-radius: 6px; font-size: 12px; font-weight: 500;
+  cursor: pointer; letter-spacing: .02em; transition: background .15s;
+  font-family: -apple-system, sans-serif;
+}
+.btn-print:hover { background: #2C4438; }
+.print-note { font-size: 10px; color: #999; text-align: center; margin-top: 5px; line-height: 1.4; }
+
+/* ── PREVIEW AREA ── */
+.preview-area {
+  background: #ECEAE5;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  padding: 32px 24px;
+}
+
+/* ── FORM PAGE ── */
+.form-page {
+  background: #fff;
+  width: 590px; /* US Letter at ~96dpi scaled */
+  padding: 38px 62px;
+  font-family: 'Fira Code', monospace;
+  font-size: 8.5pt;
+  line-height: 18pt;
+  flex-shrink: 0;
+  box-shadow: 0 2px 20px rgba(0,0,0,.08);
+}
+.form-page.a4 { width: 556px; padding: 38px 56px; }
+
+/* ── FORM TYPOGRAPHY ── */
+.f-title {
+  font-family: 'Hedvig Letters Serif', serif;
+  font-size: 12pt; font-weight: 400;
+  text-align: center; color: #1A1A1A;
+  line-height: 1.4; margin-bottom: 3px;
+}
+.f-rule-thick { border: none; border-top: 0.667px solid #1A1A1A; margin-bottom: 14px; }
+.f-rule-thin  { border: none; border-top: 0.24px solid #BBBBBB; }
+
+/* all body text — 300 light */
+.fc { font-family: 'Fira Code', monospace; font-weight: 300; font-size: 8.5pt; line-height: 18pt; color: #1A1A1A; }
+.fl { font-family: 'Fira Code', monospace; font-weight: 300; font-size: 8.5pt; line-height: 18pt; color: #666; }
+.fs { font-family: 'Fira Code', monospace; font-weight: 300; font-size: 7pt; line-height: 12pt; color: #888; }
+
+/* ── SECTION HEADER — full width, 500 weight, bottom rule ── */
+.sec-header {
+  font-family: 'Fira Code', monospace;
+  font-weight: 500; font-size: 8.5pt; line-height: 18pt;
+  color: #1A1A1A;
+  border-bottom: 0.667px solid #1A1A1A;
+  margin-bottom: 8px;
+  padding-bottom: 1px;
+  width: 100%;
+}
+
+/* ── QUESTION PAIR — two columns, top+bottom aligned per pair ── */
+.qpair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 0.667px solid #1A1A1A;
+  border-bottom: 0.667px solid #1A1A1A;
+  margin-bottom: -0.667px; /* collapse adjacent borders */
+}
+.qcol {
+  padding: 8px 0;
+}
+.qcol-l {
+  border-right: 0.667px solid #1A1A1A;
+  padding-right: 16px;
+}
+.qcol-r {
+  padding-left: 16px;
+}
+
+/* ── WRITE LINES — floating, spaced at 18pt, no box ── */
+.lines { margin-top: 2px; }
+.wl {
+  display: block;
+  width: 100%;
+  height: 18pt;
+  border: none;
+  border-bottom: 0.24px solid #BBBBBB;
+  /* gap between lines = the height itself, so they float */
+}
+
+/* ── RADIO / CHECKBOX ── */
+.opts { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 2px; }
+.opts.stacked { flex-direction: column; gap: 0; }
+.opt {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'Fira Code', monospace; font-weight: 300;
+  font-size: 8.5pt; line-height: 18pt; color: #1A1A1A;
+}
+.rc { width: 8px; height: 8px; border-radius: 50%; border: 0.667px solid #777; flex-shrink: 0; }
+.cs { width: 8px; height: 8px; border: 0.667px solid #777; flex-shrink: 0; }
+.cgrid { display: grid; grid-template-columns: 1fr 1fr 1fr; }
+
+/* ── PRACTICE BOX (page 1 header block) ── */
+.pbox {
+  display: grid; grid-template-columns: 1fr 1fr;
+  border-top: 0.667px solid #1A1A1A;
+  border-bottom: 0.667px solid #1A1A1A;
+  margin-bottom: 0;
+}
+.pbox-l { border-right: 0.667px solid #1A1A1A; padding: 8px 16px 8px 0; }
+.pbox-r { padding: 8px 0 8px 16px; display: flex; flex-direction: column; }
+
+/* ── EMERGENCY ROW ── */
+.er3 {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  border-top: 0.667px solid #1A1A1A;
+  border-bottom: 0.667px solid #1A1A1A;
+  margin-bottom: -0.667px;
+}
+.ec { padding: 7px 12px 7px 0; border-right: 0.667px solid #1A1A1A; }
+.ec:first-child { padding-left: 0; }
+.ec:last-child { border-right: none; padding-right: 0; }
+
+/* ── SCALE ── */
+.scale-track { display: flex; border: 0.667px solid #1A1A1A; height: 11px; margin: 5px 0 2px; }
+.scale-cell { flex: 1; border-right: 0.667px solid #1A1A1A; }
+.scale-cell:last-child { border-right: none; }
+.scale-labels { display: flex; justify-content: space-between; font-family: 'Fira Code', monospace; font-weight: 300; font-size: 7pt; color: #888; line-height: 1.3; }
+
+/* ── LOGO PLACEHOLDER ── */
+.logo-box {
+  width: 52px; height: 34px; border: 0.667px solid #D0CCCC;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Fira Code', monospace; font-weight: 300; font-size: 7pt; color: #bbb;
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+/* ── SENSITIVITY BLOCK ── */
+.sens {
+  background: #F5F2F9;
+  border-top: 0.667px solid #B8A8C8;
+  border-bottom: 0.667px solid #B8A8C8;
+  margin-bottom: -0.667px;
+}
+.sens-inner {
+  display: grid; grid-template-columns: 1fr 1fr;
+}
+.sens-l { border-right: 0.667px solid #B8A8C8; padding: 8px 16px 8px 0; }
+.sens-r { padding: 8px 0 8px 16px; }
+
+/* ── GFE BOX ── */
+.gfe {
+  border-top: 0.667px solid #1A1A1A;
+  border-bottom: 0.667px solid #1A1A1A;
+  padding: 8px 0; margin-bottom: -0.667px;
+}
+.gfe-title { font-family: 'Fira Code', monospace; font-weight: 500; font-size: 8.5pt; line-height: 18pt; color: #1A1A1A; margin-bottom: 2px; }
+.gfe-body  { font-family: 'Fira Code', monospace; font-weight: 300; font-size: 7.5pt; line-height: 13pt; color: #444; margin-bottom: 5px; }
+
+/* ── DECLARATION ── */
+.decl { border-top: 0.667px solid #1A1A1A; border-bottom: 0.667px solid #1A1A1A; padding: 8px 0; margin-bottom: 10px; }
+
+/* ── SIGNATURE ── */
+.sig-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-top: 10px; }
+.sig-field { font-family: 'Fira Code', monospace; font-weight: 300; font-size: 8.5pt; line-height: 18pt; color: #1A1A1A; }
+.sig-line { border: none; border-bottom: 0.24px solid #BBBBBB; height: 24px; width: 100%; margin-top: 12px; display: block; }
+
+/* ── PAGE BREAK INDICATOR (screen only) ── */
+.pgb { border: none; border-top: 1.5px dashed #D0CCC8; margin: 20px 0; position: relative; }
+.pgb::after {
+  content: attr(data-p); position: absolute; top: -9px; left: 50%;
+  transform: translateX(-50%); background: #ECEAE5; padding: 0 8px;
+  font-size: 9px; color: #AAA; font-family: -apple-system, sans-serif;
+}
+
+/* ── FOOTER ── */
+.f-footer {
+  font-family: 'Fira Code', monospace; font-weight: 300; font-size: 7pt;
+  color: #AAA; border-top: 0.24px solid #CDCDCD;
+  padding-top: 6px; margin-top: 14px; line-height: 13pt;
+}
+
+/* ── PRINT STYLES ── */
+@media print {
+  body { overflow: visible; background: none; }
+  .app { display: block; height: auto; }
+  .sidebar, .preview-area { display: none; }
+  .form-page {
+    width: 100%; box-shadow: none;
+    padding: 1cm 1.65cm;
+    margin: 0;
+    font-size: 8.5pt;
+    line-height: 18pt;
+  }
+  .pgb { display: none; }
+  .pgb + .f-title { page-break-before: always; }
+  @page { margin: 0; size: letter; }
+  @page.a4 { size: A4; }
+}
+
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="brand">NiceForms</div>
+      <div class="brand-sub">Client Intake Form — generator</div>
+    </div>
+
+    <div class="sidebar-scroll">
+
+      <div class="sl">Form title</div>
+      <div class="fg"><input id="f-title" value="Client Intake Form"></div>
+
+      <div class="divider"></div>
+      <div class="sl">Page size</div>
+      <div class="size-row">
+        <button class="size-btn active" onclick="setSize(this,'letter')">US Letter</button>
+        <button class="size-btn" onclick="setSize(this,'a4')">A4</button>
+      </div>
+
+      <div class="divider"></div>
+      <div class="sl">Background</div>
+      <div class="swatch-row">
+        <div class="swatch active" style="background:#FFFFFF;" data-color="#FFFFFF" title="White"></div>
+        <div class="swatch" style="background:#F0EDE8;" data-color="#F0EDE8" title="Warm stone"></div>
+        <div class="swatch" style="background:#EAF0ED;" data-color="#EAF0ED" title="Sage mist"></div>
+        <div class="swatch" style="background:#F0EAE8;" data-color="#F0EAE8" title="Blush clay"></div>
+        <div class="swatch" style="background:#E8EDF0;" data-color="#E8EDF0" title="Dusty blue"></div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="sl">Practice info</div>
+      <div class="fg"><label>Practice name</label><input id="f-practice" value="Practice Name"></div>
+      <div class="fg"><label>Therapist / counsellor</label><input id="f-therapist" value="Counsellor / Therapist"></div>
+      <div class="fg"><label>Address</label><input id="f-address" value="Address"></div>
+      <div class="fg"><label>Contact info</label><input id="f-contact" value="Contact Info"></div>
+      <div class="fg"><label>Session date label</label><input id="f-session" value="Session date"></div>
+
+      <div class="divider"></div>
+      <div class="sl">Section names</div>
+      <div class="fg"><label>Section 1</label><input id="s1" value="1 — Client Info"></div>
+      <div class="fg"><label>Section 2</label><input id="s2" value="2 — What brings you here"></div>
+      <div class="fg"><label>Section 3</label><input id="s3" value="3 — Wellbeing — Current & Historical"></div>
+      <div class="fg"><label>Section 4</label><input id="s4" value="4 — Relationships & Home Life"></div>
+      <div class="fg"><label>Section 5</label><input id="s5" value="5 — Stress & Overall Wellness"></div>
+      <div class="fg"><label>Section 6</label><input id="s6" value="6 — Sleep"></div>
+
+      <div class="divider"></div>
+      <div class="sl">Key questions</div>
+      <div class="fg"><label>Opening question</label><textarea id="q-open">In your own words, what brings you to therapy at this time?</textarea></div>
+      <div class="fg"><label>Coping question</label><textarea id="q-cope">What have you tried so far to manage this?</textarea></div>
+      <div class="fg"><label>Goals question</label><textarea id="q-goal">What would you like to gain from therapy?</textarea></div>
+      <div class="fg"><label>Wellbeing prompt</label><textarea id="q-well">In one sentence, how would you describe your overall sense of wellbeing right now?</textarea></div>
+      <div class="fg"><label>Declaration text</label><textarea id="q-decl">I confirm the information above is accurate to the best of my knowledge.</textarea></div>
+
+      <div class="divider"></div>
+      <div class="sl">Footer / copyright</div>
+      <div class="fg"><textarea id="f-footer">This form is a customisable design template. Content should be reviewed by the purchasing clinician and, if needed, their attorney or licensing board, to ensure compliance with their state's laws and ethical guidelines. NiceForms © 2026</textarea></div>
+
+    </div>
+
+    <div class="sidebar-bottom">
+      <button class="btn-print" onclick="window.print()">Print / Save as PDF</button>
+      <p class="print-note">Use browser print → Save as PDF<br>Set margins to None for exact sizing</p>
+    </div>
+  </aside>
+
+  <!-- ── PREVIEW ── -->
+  <main class="preview-area">
+  <div class="form-page" id="form-page">
+
+    <!-- PAGE 1 -->
+    <div class="f-title" id="p-title">Client Intake Form</div>
+    <hr class="f-rule-thick">
+
+    <!-- Practice info block -->
+    <div class="pbox">
+      <div class="pbox-l">
+        <div class="sec-header" id="p-s1">1 — Client Info</div>
+        <div class="fl">Full Name</div><div class="wl"></div>
+        <div class="fl">Date of Birth</div><div class="wl"></div>
+        <div class="fl">Pronouns</div><div class="wl"></div>
+        <div class="fl">Phone Number</div><div class="wl"></div>
+        <div class="fl">Email Address</div><div class="wl"></div>
+        <div class="fl">Address</div><div class="wl"></div>
+        <div class="wl"></div>
+        <div class="fl">Preferred contact method</div>
+        <div class="opts" style="margin-top:1px;">
+          <div class="opt"><div class="rc"></div><span>phone</span></div>
+          <div class="opt"><div class="rc"></div><span>email</span></div>
+          <div class="opt"><div class="rc"></div><span>text</span></div>
+        </div>
+      </div>
+      <div class="pbox-r">
+        <div class="fc" id="p-practice" style="font-weight:500;">Practice Name</div>
+        <div class="fl" id="p-therapist">Counsellor / Therapist</div>
+        <div class="fl" id="p-address">Address</div>
+        <div class="fl" id="p-contact">Contact Info</div>
+        <div class="fl" id="p-session">Session date</div>
+        <div class="logo-box">Logo</div>
+      </div>
+    </div>
+
+    <!-- Emergency contact -->
+    <div class="er3">
+      <div class="ec">
+        <div class="fc" style="font-weight:500;">Emergency contact</div>
+        <div class="fl">Name:</div><div class="wl"></div>
+      </div>
+      <div class="ec">
+        <div class="fl">Phone:</div><div class="wl" style="margin-top:18pt;"></div>
+      </div>
+      <div class="ec">
+        <div class="fl">Relationship to you:</div><div class="wl" style="margin-top:18pt;"></div>
+      </div>
+    </div>
+
+    <!-- Section 2 header — full width -->
+    <div style="margin-top:14px;">
+      <div class="sec-header" id="p-s2">2 — What brings you here</div>
+    </div>
+
+    <!-- Q pair: opening + duration -->
+    <div class="qpair">
+      <div class="qcol qcol-l">
+        <div class="fc" id="p-qopen">In your own words, what brings you to therapy at this time?</div>
+        <div class="lines">
+          <div class="wl"></div><div class="wl"></div><div class="wl"></div>
+          <div class="wl"></div><div class="wl"></div>
+        </div>
+      </div>
+      <div class="qcol qcol-r">
+        <div class="fc">How long have you been experiencing this?</div>
+        <div class="opts stacked" style="margin-top:4px;">
+          <div class="opt"><div class="rc"></div><span>Less than a month</span></div>
+          <div class="opt"><div class="rc"></div><span>1–6 months</span></div>
+          <div class="opt"><div class="rc"></div><span>6–12 months</span></div>
+          <div class="opt"><div class="rc"></div><span>Over a year</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q pair: coping + areas affected -->
+    <div class="qpair">
+      <div class="qcol qcol-l">
+        <div class="fc" id="p-qcope">What have you tried so far to manage this?</div>
+        <div class="lines">
+          <div class="wl"></div><div class="wl"></div>
+          <div class="wl"></div><div class="wl"></div>
+        </div>
+      </div>
+      <div class="qcol qcol-r">
+        <div class="fc">Have these concerns affected any of the following areas?</div>
+        <div class="opts" style="margin-top:2px;">
+          <div class="opt"><div class="rc"></div><span>Yes</span></div>
+          <div class="opt"><div class="rc"></div><span>No</span></div>
+        </div>
+        <div class="fl" style="margin-top:4px;">If yes — which areas? (check all that apply)</div>
+        <div class="cgrid" style="margin-top:2px;">
+          <div class="opt"><div class="cs"></div><span>Work</span></div>
+          <div class="opt"><div class="cs"></div><span>Health</span></div>
+          <div class="opt"><div class="cs"></div><span>Relationship</span></div>
+          <div class="opt"><div class="cs"></div><span>Finances</span></div>
+          <div class="opt"><div class="cs"></div><span>Legal</span></div>
+          <div class="opt"><div class="cs"></div><span>Self-image</span></div>
+        </div>
+        <div class="fl" style="margin-top:2px;">Other: <span style="display:inline-block;width:52%;border-bottom:0.24px solid #BBB;">&nbsp;</span></div>
+      </div>
+    </div>
+
+    <!-- Q pair: goals + empty -->
+    <div class="qpair">
+      <div class="qcol qcol-l">
+        <div class="fc" id="p-qgoal">What would you like to gain from therapy?</div>
+        <div class="lines">
+          <div class="wl"></div><div class="wl"></div>
+          <div class="wl"></div><div class="wl"></div>
+        </div>
+      </div>
+      <div class="qcol qcol-r"></div>
+    </div>
+
+    <!-- PAGE 2 -->
+    <div class="pgb" data-p="page 2"></div>
+    <div class="f-title" id="p-title2">Client Intake Form</div>
+    <hr class="f-rule-thick">
+
+    <!-- Section 3 header -->
+    <div class="sec-header" id="p-s3">3 — Wellbeing — Current & Historical</div>
+
+    <!-- Q pair: diagnosis + trauma -->
+    <div class="qpair">
+      <div class="qcol qcol-l">
+        <div class="fc">Have you ever been diagnosed with a mental health condition?</div>
+        <div class="opts" style="margin-top:2px;">
+          <div class="opt"><div class="rc"></div><span>Yes</span></div>
+          <div class="opt"><div class="rc"></div><span>No</span></div>
+        </div>
+        <div class="fl" style="margin-top:4px;">If yes — please share any details you're comfortable with.</div>
+        <div class="lines"><div class="wl"></div><div class="wl"></div><div class="wl"></div></div>
+      </div>
+      <div class="qcol qcol-r">
+        <div class="fc">Have you experienced significant trauma in your life?</div>
+        <div class="opts" style="margin-top:2px;">
+          <div class="opt"><div class="rc"></div><span>Yes</span></div>
+          <div class="opt"><div class="rc"></div><span>No</span></div>
+          <div class="opt"><div class="rc"></div><span>Prefer not to say</span></div>
+        </div>
+        <div class="fl" style="margin-top:4px;">Any comments you'd like to share:</div>
+        <div class="lines"><div class="wl"></div><div class="wl"></div><div class="wl"></div></div>
+      </div>
+    </div>
+
+    <!-- Q pair: medications + previous therapy -->
+    <div class="qpair">
+      <div class="qcol qcol-l">
+        <div class="fc">Are you currently taking any medications?</div>
+        <div class="opts" style="margin-top:2px;">
+          <div class="opt"><div class="rc"></div><span>Yes</span></div>
+          <div class="opt"><div class="rc"></div><span>No</span></div>
+        </div>
+        <div class="fl" style="margin-top:4px;">If yes — medication name(s) and dosage:</div>
+        <div class="lines"><div class="wl"></div><div class="wl"></div></div>
+      </div>
+      <div class="qcol qcol-r">
+        <div class="fc">Have you previously worked with a therapist or counsellor?</div>
+        <div class="opts stacked" style="margin-top:4px;">
+          <div class="opt"><div class="rc"></div><span>Yes</span></div>
+          <div class="opt"><div class="rc"></div><span>No</span></div>
+          <div class="opt"><div class="rc"></div><span>Currently seeing someone</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sensitivity block — suicide ideation -->
+    <div class="sens">
+      <div class="sens-inner">
+        <div class="sens-l">
+          <div class="fc" style="color:#4A3560;">Have you ever had thoughts of suicide or self-harm?</div>
+          <div class="opts stacked" style="margin-top:4px;">
+            <div class="opt"><div class="rc" style="border-color:#9A80B8;"></div><span>Yes</span></div>
+            <div class="opt"><div class="rc" style="border-color:#9A80B8;"></div><span>No</span></div>
+            <div class="opt"><div class="rc" style="border-color:#9A80B8;"></div><span>Prefer not to say</span></div>
+          </div>
+        </div>
+        <div class="sens-r">
+          <div class="fc" style="color:#4A3560;">In the last three months?</div>
+          <div class="opts stacked" style="margin-top:4px;">
+            <div class="opt"><div class="rc" style="border-color:#9A80B8;"></div><span>Yes</span></div>
+            <div class="opt"><div class="rc" style="border-color:#9A80B8;"></div><span>No</span></div>
+            <div class="opt"><div class="rc" style="border-color:#9A80B8;"></div><span>Prefer not to say</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4 header -->
+    <div style="margin-top:14px;">
+      <div class="sec-header" id="p-s4">4 — Relationships & Home Life</div>
+    </div>
+
+    <!-- Q pair: relationship status + satisfaction -->
+    <div class="qpair">
+      <div class="qcol qcol-l">
+        <div class="fc">Current relationship status</div>
+        <div class="opts stacked" style="margin-top:2px;">
+          <div class="opt"><div class="rc"></div><span>Single</span></div>
+          <div class="opt"><div class="rc"></div><span>In a relationship</span></div>
+          <div class="opt"><div class="rc"></div><span>Married / common-law</span></div>
+          <div class="opt"><div class="rc"></div><span>Separated / divorced</span></div>
+          <div class="opt"><div class="rc"></div><span>Widowed</span></div>
+          <div class="opt"><div class="rc"></div><span>Other: <span style="display:inline-block;width:36%;border-bottom:0.24px solid #BBB;">&nbsp;</span></span></div>
+        </div>
+      </div>
+      <div class="qcol qcol-r">
+        <div class="fc">How satisfied are you in your relationship?</div>
+        <div class="scale-track"><div class="scale-cell"></div><div class="scale-cell"></div><div class="scale-cell"></div><div class="scale-cell"></div><div class="scale-cell"></div><div class="scale-cell"></div><div class="scale-cell"></div><div class="scale-cell"></div><div class="scale-cell"></div><div class="scale-cell"></div></div>
+        <div class="scale-labels"><span>1 = very dissatisfied</span><span>10 = very satisfied</span></div>
+        <div class="fl" style="margin-top:5px;">Comment:</div>
+        <div class="lines"><div class="wl"></div><div class="wl"></div></div>
+      </div>
+    </div>
+
+    <!-- PAGE 3 -->
+    <div class="pgb" data-p="page 3"></div>
+    <div class="f-title">Client Intake Form</div>
+    <hr class="f-rule-thick">
+
+    <!-- Section 4 cont. header -->
+    <div class="sec-header">4 — Relationships & Home Life (cont.)</div>
+
+    <!-- Q pair: household + children -->
+    <div class="qpair">
+      <div class="qcol qcol-l">
+        <div class="fc">Who currently lives in your household?</div>
+        <div class="fl">(name, relation — note ages for children)</div>
+        <div class="lines"><div class="wl"></div><div class="wl"></div><div class="wl"></div><div class="wl"></div></div>
+      </div>
+      <div class="qcol qcol-r">
+        <div class="fc">Do you have children?</div>
+        <div class="opts" style="margin-top:2px;">
+          <div class="opt"><div class="rc"></div><span>Yes</span></div>
+          <div class="opt"><div class="rc"></div><span>No</span></div>
+        </div>
+        <div class="fl" style="margin-top:4px;">If yes, ages:</div>
+        <div class="lines"><div class="wl"></div><div class="wl"></div></div>
+      </div>
+    </div>
+
+    <!-- Section 5 header -->
+    <div style="margin-top:14px;">
+      <div class="sec-header" id="p-s5">5 — Stress & Overall Wellness</div>
+    </div>
+
+    <!-- Q pair: stress level + sources -->
+    <div class="qpair">
+      <div class="qcol qcol-l">
+        <div class="fc">What level of stress are you currently experiencing?</div>
+        <div class="scale-track"><div class="scale-cell"></div><div class="scale-cell"></div><div class="scale-cell"></div><div class="scale-cell"></div><div class="scale-cell"></div><div class="scale-cell"></div><div class="scale-cell"></div><div class="scale-cell"></div><div class="scale-cell"></div><div class="scale-cell"></div></div>
+        <div class="scale-labels"><span>1 = low</span><span>10 = extremely high</span></div>
+      </div>
+      <div class="qcol qcol-r">
+        <div class="fc">What are the main sources of your stress? (check all that apply)</div>
+        <div class="cgrid" style="margin-top:2px;">
+          <div class="opt"><div class="cs"></div><span>Financial</span></div>
+          <div class="opt"><div class="cs"></div><span>Relationship</span></div>
+          <div class="opt"><div class="cs"></div><span>Family</span></div>
+          <div class="opt"><div class="cs"></div><span>Health</span></div>
+          <div class="opt"><div class="cs"></div><span>Spiritual</span></div>
+          <div class="opt"><div class="cs"></div><span>Career</span></div>
+          <div class="opt"><div class="cs"></div><span>Personal</span></div>
+          <div class="opt"><div class="cs"></div><span>Pre/post-natal</span></div>
+        </div>
+        <div class="fl" style="margin-top:2px;">Other: <span style="display:inline-block;width:50%;border-bottom:0.24px solid #BBB;">&nbsp;</span></div>
+      </div>
+    </div>
+
+    <!-- Q pair: stress manifestation + coping -->
+    <div class="qpair">
+      <div class="qcol qcol-l">
+        <div class="fc">How does stress show up for you?</div>
+        <div class="fl">(physical, emotional, behavioural)</div>
+        <div class="lines"><div class="wl"></div><div class="wl"></div><div class="wl"></div><div class="wl"></div></div>
+      </div>
+      <div class="qcol qcol-r">
+        <div class="fc">What helps you manage stress — any coping strategies?</div>
+        <div class="lines"><div class="wl"></div><div class="wl"></div><div class="wl"></div><div class="wl"></div></div>
+      </div>
+    </div>
+
+    <!-- Q pair: wellbeing sentence + spiritual -->
+    <div class="qpair">
+      <div class="qcol qcol-l">
+        <div class="fc" id="p-qwell">In one sentence, how would you describe your overall sense of wellbeing right now?</div>
+        <div class="lines"><div class="wl"></div><div class="wl"></div><div class="wl"></div></div>
+      </div>
+      <div class="qcol qcol-r">
+        <div class="fc">Do you draw on any spiritual, religious, or mindfulness practices?</div>
+        <div class="opts" style="margin-top:2px;">
+          <div class="opt"><div class="rc"></div><span>Yes</span></div>
+          <div class="opt"><div class="rc"></div><span>No</span></div>
+        </div>
+        <div class="fl" style="margin-top:4px;">If yes, please share:</div>
+        <div class="lines"><div class="wl"></div><div class="wl"></div></div>
+      </div>
+    </div>
+
+    <!-- PAGE 4 -->
+    <div class="pgb" data-p="page 4"></div>
+    <div class="f-title">Client Intake Form</div>
+    <hr class="f-rule-thick">
+
+    <!-- Section 6 header -->
+    <div class="sec-header" id="p-s6">6 — Sleep</div>
+
+    <!-- Q pair: hours + falling asleep -->
+    <div class="qpair">
+      <div class="qcol qcol-l">
+        <div class="fc">How many hours do you sleep on average per night? (including naps)</div>
+        <div class="lines"><div class="wl"></div><div class="wl"></div></div>
+      </div>
+      <div class="qcol qcol-r">
+        <div class="fc">Do you have difficulty falling asleep?</div>
+        <div class="opts" style="margin-top:2px;">
+          <div class="opt"><div class="rc"></div><span>Yes</span></div>
+          <div class="opt"><div class="rc"></div><span>No</span></div>
+          <div class="opt"><div class="rc"></div><span>Sometimes</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q pair: staying asleep + substances -->
+    <div class="qpair">
+      <div class="qcol qcol-l">
+        <div class="fc">Do you have difficulty staying asleep?</div>
+        <div class="opts" style="margin-top:2px;">
+          <div class="opt"><div class="rc"></div><span>Yes</span></div>
+          <div class="opt"><div class="rc"></div><span>No</span></div>
+          <div class="opt"><div class="rc"></div><span>Sometimes</span></div>
+        </div>
+      </div>
+      <div class="qcol qcol-r">
+        <div class="fc">Do you use any substances to help you sleep?</div>
+        <div class="fl">(alcohol, medication, cannabis, other)</div>
+        <div class="opts" style="margin-top:2px;">
+          <div class="opt"><div class="rc"></div><span>Yes</span></div>
+          <div class="opt"><div class="rc"></div><span>No</span></div>
+        </div>
+        <div class="fl" style="margin-top:4px;">If yes, please describe:</div>
+        <div class="lines"><div class="wl"></div><div class="wl"></div></div>
+      </div>
+    </div>
+
+    <!-- Good Faith Estimate -->
+    <div style="margin-top:14px;">
+      <div class="gfe">
+        <div class="gfe-title">Good Faith Estimate</div>
+        <div class="gfe-body">Under the No Surprises Act (effective January 2022), you have the right to receive a Good Faith Estimate of expected charges for mental health services. Your therapist is required to provide a written estimate before your first session if you are uninsured or paying out of pocket. You have the right to dispute a bill if the final charge is $400 or more above the estimate. For more information visit cms.gov/nosurprises</div>
+        <div class="opt"><div class="cs"></div><span class="fl">I acknowledge I have been informed of my right to a Good Faith Estimate.</span></div>
+      </div>
+    </div>
+
+    <!-- Declaration -->
+    <div style="margin-top:14px;">
+      <div class="decl">
+        <div class="sec-header">Declaration</div>
+        <div class="fc" id="p-qdecl">I confirm the information above is accurate to the best of my knowledge.</div>
+        <div class="opt" style="margin-top:4px;"><div class="cs"></div><span class="fl">I confirm</span></div>
+      </div>
+    </div>
+
+    <!-- Signature -->
+    <div class="sig-grid">
+      <div class="sig-field">Client Signature:<span class="sig-line"></span></div>
+      <div class="sig-field">Date:<span class="sig-line"></span></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="f-footer" id="p-footer">This form is a customisable design template. Content should be reviewed by the purchasing clinician and, if needed, their attorney or licensing board, to ensure compliance with their state's laws and ethical guidelines. NiceForms © 2026</div>
+
+  </div>
+  </main>
+
+</div>
+
+<script>
+  // ── Live field binding ──
+  const bindings = {
+    'f-title':    ['p-title', 'p-title2'],
+    'f-practice': ['p-practice'],
+    'f-therapist':['p-therapist'],
+    'f-address':  ['p-address'],
+    'f-contact':  ['p-contact'],
+    'f-session':  ['p-session'],
+    's1': ['p-s1'], 's2': ['p-s2'], 's3': ['p-s3'],
+    's4': ['p-s4'], 's5': ['p-s5'], 's6': ['p-s6'],
+    'q-open': ['p-qopen'], 'q-cope': ['p-qcope'],
+    'q-goal': ['p-qgoal'], 'q-well': ['p-qwell'],
+    'q-decl': ['p-qdecl'], 'f-footer': ['p-footer'],
+  };
+
+  Object.entries(bindings).forEach(([inputId, targetIds]) => {
+    const el = document.getElementById(inputId);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      targetIds.forEach(tid => {
+        const t = document.getElementById(tid);
+        if (t) t.textContent = el.value;
+      });
+    });
+  });
+
+  // ── Background color swatches ──
+  document.querySelectorAll('.swatch').forEach(sw => {
+    sw.addEventListener('click', () => {
+      document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+      sw.classList.add('active');
+      document.getElementById('form-page').style.background = sw.dataset.color;
+    });
+  });
+
+  // ── Page size toggle ──
+  function setSize(btn, size) {
+    document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const fp = document.getElementById('form-page');
+    fp.classList.toggle('a4', size === 'a4');
+  }
+</script>
+
+</body>
+</html>
